@@ -1,0 +1,16 @@
+{
+  "name": "secpilot",
+  "version": "1.0.0",
+  "description": "CI/CD tool that suggests code fixes using LLM when tests fail",
+  "scripts": {
+    "test": "jest --config config/jest.config.js",
+    "test:watch": "jest --config config/jest.config.js --watch",
+    "test:coverage": "jest --config config/jest.config.js --coverage"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

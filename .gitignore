@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+.pytest_cache/
+.venv/
+venv/
+
+# Build outputs
+target/
+*.class
+*.jar
+dist/
+build/
+coverage/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+.project
+.classpath
+.settings/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test outputs
+test-output.txt
+*.log
+test-artifacts/
+
+# Environment
+.env
+.env.local
+
+# Generated
+fix-suggestions.md
