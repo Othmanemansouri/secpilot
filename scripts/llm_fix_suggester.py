@@ -3,7 +3,7 @@
 LLM Fix Suggester pour la pipeline CI/CD Secpilot
 
 Analyse les échecs de tests et suggère des corrections en utilisant des APIs LLM.
-Supporte Ollama (local), Anthropic Claude et OpenAI GPT.
+Supporte Ollama (local), Anthropic et OpenAI.
 """
 
 import os
@@ -56,13 +56,13 @@ class OllamaProvider(LLMProvider):
 
 
 class AnthropicProvider(LLMProvider):
-    """Provider pour Anthropic Claude"""
+    """Provider pour Anthropic API"""
 
-    def __init__(self, api_key: str, model: str = "claude-sonnet-4-20250514"):
+    def __init__(self, api_key: str, model: str = None):
         try:
             import anthropic
             self.client = anthropic.Anthropic(api_key=api_key)
-            self.model = model
+            self.model = model or os.environ.get("ANTHROPIC_MODEL", "claude-3-5-sonnet-20241022")
         except ImportError:
             raise ImportError("Le package 'anthropic' est requis pour ce provider")
 

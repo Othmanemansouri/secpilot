@@ -7,7 +7,7 @@ Outil CI/CD qui suggère des corrections de code en utilisant un LLM lorsque les
 Secpilot est une pipeline CI/CD intelligente qui :
 1. Exécute des tests pour du code Python, JavaScript et Java
 2. Détecte les échecs de tests
-3. Analyse les échecs avec un LLM (Ollama, Claude ou GPT-4)
+3. Analyse les échecs avec un LLM (Ollama, Anthropic, OpenAI)
 4. Suggère des corrections basées sur le contexte métier
 
 ## Structure du projet
@@ -139,7 +139,7 @@ Il retourne :
 ### Providers supportés
 
 - **Ollama** : Modèles locaux (llama2, codellama, etc.)
-- **Anthropic** : Claude
+- **Anthropic** : API Anthropic
 - **OpenAI** : GPT-4
 - **Mock** : Provider de test (pas de vraie API)
 
