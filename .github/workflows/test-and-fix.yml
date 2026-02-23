@@ -120,16 +120,70 @@ jobs:
           retention-days: 7
 
   # ============================================
+  # Analyse statique Semgrep
+  # ============================================
+  semgrep-scan:
+    runs-on: ubuntu-latest
+    outputs:
+      findings-count: ${{ steps.semgrep.outputs.findings-count }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python for Semgrep
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Semgrep
+        run: pip install semgrep
+
+      - name: Run Semgrep scan
+        id: semgrep
+        continue-on-error: true
+        run: |
+          semgrep --config .semgrep.yml src/ \
+            --sarif -o semgrep.sarif \
+            --no-rewrite-rule-ids \
+            --quiet || true
+          python scripts/parse_semgrep_findings.py semgrep.sarif semgrep-findings.json
+          COUNT=$(python -c "import json; d=json.load(open('semgrep-findings.json')); print(d['total_findings'])")
+          echo "findings-count=$COUNT" >> $GITHUB_OUTPUT
+          echo "Semgrep : $COUNT violation(s) trouvée(s)"
+
+      - name: Upload Semgrep findings
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-findings
+          path: semgrep-findings.json
+          retention-days: 7
+
+      - name: Post Semgrep summary
+        if: always()
+        run: |
+          echo "## Résultats Semgrep" >> $GITHUB_STEP_SUMMARY
+          python -c "
+          import json
+          with open('semgrep-findings.json') as f:
+              data = json.load(f)
+          print(f\"Total violations : {data['total_findings']}\")
+          for d, c in data.get('by_domain', {}).items():
+              print(f'- {d} : {c}')
+          " >> $GITHUB_STEP_SUMMARY
+
+  # ============================================
   # Job de suggestion de corrections LLM
   # ============================================
   suggest-fixes:
     runs-on: ubuntu-latest
-    needs: [test-python, test-javascript, test-java]
+    needs: [test-python, test-javascript, test-java, semgrep-scan]
     if: |
       always() && (
         needs.test-python.outputs.test-failed == 'true' ||
         needs.test-javascript.outputs.test-failed == 'true' ||
-        needs.test-java.outputs.test-failed == 'true'
+        needs.test-java.outputs.test-failed == 'true' ||
+        needs.semgrep-scan.outputs.findings-count != '0'
       )
 
     steps:
@@ -207,16 +261,17 @@ jobs:
   # ============================================
   summary:
     runs-on: ubuntu-latest
-    needs: [test-python, test-javascript, test-java]
+    needs: [test-python, test-javascript, test-java, semgrep-scan]
     if: always()
 
     steps:
       - name: Generate summary
         run: |
-          echo "## Résumé des tests Secpilot" >> $GITHUB_STEP_SUMMARY
+          echo "## Résumé Secpilot" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "| Langage | Statut |" >> $GITHUB_STEP_SUMMARY
-          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
-          echo "| Python | ${{ needs.test-python.outputs.test-failed == 'true' && '❌ Échec' || '✅ Succès' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| JavaScript | ${{ needs.test-javascript.outputs.test-failed == 'true' && '❌ Échec' || '✅ Succès' }} |" >> $GITHUB_STEP_SUMMARY
-          echo "| Java | ${{ needs.test-java.outputs.test-failed == 'true' && '❌ Échec' || '✅ Succès' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Outil | Statut |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests Python | ${{ needs.test-python.outputs.test-failed == 'true' && '❌ Échec' || '✅ Succès' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests JavaScript | ${{ needs.test-javascript.outputs.test-failed == 'true' && '❌ Échec' || '✅ Succès' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Tests Java | ${{ needs.test-java.outputs.test-failed == 'true' && '❌ Échec' || '✅ Succès' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Semgrep (SAST) | ${{ needs.semgrep-scan.outputs.findings-count != '0' && '⚠️ Violations détectées' || '✅ Aucune violation' }} |" >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,286 @@
+rules:
+
+  # ===============================================
+  # DOMAINE E-COMMERCE
+  # Règle EC-001 : Les prix ne doivent jamais être négatifs
+  # ===============================================
+
+  - id: ecommerce-no-negative-price-python
+    patterns:
+      - pattern: |
+          def set_product_price($PRODUCT, $PRICE):
+              ...
+              $PRODUCT[$KEY] = $PRICE
+      - pattern-not: |
+          def set_product_price($PRODUCT, $PRICE):
+              ...
+              if $PRICE < 0:
+                  ...
+      - pattern-not: |
+          def set_product_price($PRODUCT, $PRICE):
+              ...
+              if $PRICE >= 0:
+                  ...
+    languages: [python]
+    severity: ERROR
+    message: >
+      [EC-001] RÈGLE MÉTIER : set_product_price() ne valide pas que le prix est
+      non-négatif. Les prix e-commerce ne doivent JAMAIS être négatifs.
+      Correction : ajouter `if new_price < 0: raise ValueError("Price cannot be negative")`
+    metadata:
+      business_rule: EC-001
+      domain: ecommerce
+      category: business-logic
+
+  - id: ecommerce-discount-can-return-negative
+    patterns:
+      - pattern: |
+          def calculate_discount($PRICE, $DISCOUNT):
+              ...
+              return $PRICE - $X
+      - pattern-not: |
+          def calculate_discount($PRICE, $DISCOUNT):
+              ...
+              return max(0, $PRICE - $X)
+    languages: [python]
+    severity: ERROR
+    message: >
+      [EC-001] RÈGLE MÉTIER : calculate_discount() peut retourner un prix négatif
+      si la remise dépasse 100%. Correction : utiliser `return max(0, original_price - discounted_amount)`
+    metadata:
+      business_rule: EC-001
+      domain: ecommerce
+      category: business-logic
+
+  - id: ecommerce-no-negative-price-js
+    patterns:
+      - pattern: |
+          function setProductPrice($PRODUCT, $NEW_PRICE) {
+              ...
+              $PRODUCT.price = $NEW_PRICE;
+              ...
+          }
+      - pattern-not: |
+          function setProductPrice($PRODUCT, $NEW_PRICE) {
+              if ($NEW_PRICE < 0) { ... }
+              ...
+          }
+    languages: [javascript]
+    severity: ERROR
+    message: >
+      [EC-001] RÈGLE MÉTIER : setProductPrice() ne valide pas que le prix est
+      non-négatif. Ajouter : `if (newPrice < 0) throw new Error("Price cannot be negative")`
+    metadata:
+      business_rule: EC-001
+      domain: ecommerce
+      category: business-logic
+
+  # ===============================================
+  # DOMAINE BANQUE
+  # Règle BK-001 : Refuser le virement si solde insuffisant
+  # ===============================================
+
+  - id: banking-missing-balance-check-python
+    patterns:
+      - pattern: |
+          def transfer_funds($FROM, $TO, $AMOUNT):
+              ...
+              $FROM[$KEY] -= $AMOUNT
+      - pattern-not: |
+          def transfer_funds($FROM, $TO, $AMOUNT):
+              ...
+              if $FROM[$KEY] < $AMOUNT:
+                  ...
+      - pattern-not: |
+          def transfer_funds($FROM, $TO, $AMOUNT):
+              ...
+              if $FROM[$KEY] >= $AMOUNT:
+                  ...
+    languages: [python]
+    severity: ERROR
+    message: >
+      [BK-001] RÈGLE MÉTIER : transfer_funds() débite le compte sans vérifier
+      le solde disponible. Correction : ajouter
+      `if from_account['balance'] < amount: raise ValueError("Insufficient balance")`
+    metadata:
+      business_rule: BK-001
+      domain: banking
+      category: business-logic
+
+  - id: banking-missing-balance-check-js
+    patterns:
+      - pattern: |
+          function transferFunds($FROM, $TO, $AMOUNT) {
+              ...
+              $FROM.balance -= $AMOUNT;
+              ...
+          }
+      - pattern-not: |
+          function transferFunds($FROM, $TO, $AMOUNT) {
+              if ($FROM.balance < $AMOUNT) { ... }
+              ...
+          }
+    languages: [javascript]
+    severity: ERROR
+    message: >
+      [BK-001] RÈGLE MÉTIER : transferFunds() débite le compte sans vérifier
+      le solde. Ajouter : `if (fromAccount.balance < amount) throw new Error("Insufficient balance")`
+    metadata:
+      business_rule: BK-001
+      domain: banking
+      category: business-logic
+
+  - id: banking-regex-missing-anchors
+    patterns:
+      - pattern: re.match("...", ...)
+      - pattern-not: re.match("^...$", ...)
+      - pattern-not: re.fullmatch(...)
+    languages: [python]
+    severity: WARNING
+    message: >
+      [BK-002] BUG CLASSIQUE : Pattern regex sans ancres ^ et $.
+      re.match() avec '\d{10}' accepte '12345678901234' car il matche les 10 premiers chiffres.
+      Correction : utiliser r'^\d{10}$' ou re.fullmatch(r'\d{10}', account_number)
+    metadata:
+      business_rule: BK-002
+      domain: banking
+      category: classic-bug
+
+  - id: banking-keyerror-dict-access
+    patterns:
+      - pattern: $DICT[$KEY]
+      - pattern-not: $DICT.get($KEY, ...)
+      - pattern-not: |
+          if $KEY in $DICT:
+              ...
+              $DICT[$KEY]
+    languages: [python]
+    paths:
+      include:
+        - src/python/banking/*.py
+    severity: WARNING
+    message: >
+      BUG CLASSIQUE : Accès direct à un dictionnaire sans vérification de clé.
+      Peut lever KeyError si le type de compte est inconnu.
+      Correction : utiliser `fees.get(account_type)` avec une valeur par défaut.
+    metadata:
+      domain: banking
+      category: classic-bug
+
+  # ===============================================
+  # DOMAINE SANTÉ
+  # Règle HC-001 : Dose maximale à ne pas dépasser
+  # ===============================================
+
+  - id: healthcare-missing-dosage-cap-python
+    patterns:
+      - pattern: |
+          def calculate_dosage($WEIGHT, $DOSE_PER_KG, $MED):
+              ...
+              return $WEIGHT * $DOSE_PER_KG
+      - pattern-not: |
+          def calculate_dosage($WEIGHT, $DOSE_PER_KG, $MED):
+              ...
+              return min($WEIGHT * $DOSE_PER_KG, ...)
+    languages: [python]
+    severity: ERROR
+    message: >
+      [HC-001] RÈGLE MÉTIER CRITIQUE : calculate_dosage() ne plafonne pas la dose
+      calculée à la limite maximale sûre. Un patient de 150kg recevrait 4500mg
+      de paracétamol au lieu de 4000mg max.
+      Correction : `return min(calculated_dose, MAX_DOSES.get(medication, calculated_dose))`
+    metadata:
+      business_rule: HC-001
+      domain: healthcare
+      category: business-logic
+
+  - id: healthcare-missing-dosage-cap-js
+    patterns:
+      - pattern: |
+          function calculateDosage($WEIGHT, $DOSE_PER_KG, $MED) {
+              ...
+              return $WEIGHT * $DOSE_PER_KG;
+          }
+      - pattern-not: |
+          function calculateDosage($WEIGHT, $DOSE_PER_KG, $MED) {
+              ...
+              return Math.min(...);
+          }
+    languages: [javascript]
+    severity: ERROR
+    message: >
+      [HC-001] RÈGLE MÉTIER CRITIQUE : calculateDosage() ne plafonne pas la dose.
+      Correction : `return Math.min(calculatedDose, MAX_DOSES[medication] || calculatedDose)`
+    metadata:
+      business_rule: HC-001
+      domain: healthcare
+      category: business-logic
+
+  - id: healthcare-division-by-zero
+    patterns:
+      - pattern: |
+          def split_daily_dose($DOSE, $FREQ):
+              return $DOSE / $FREQ
+      - pattern-not: |
+          def split_daily_dose($DOSE, $FREQ):
+              if $FREQ == 0:
+                  ...
+    languages: [python]
+    severity: WARNING
+    message: >
+      BUG CLASSIQUE : split_daily_dose() peut lever ZeroDivisionError si frequency=0.
+      Correction : ajouter `if frequency == 0: raise ValueError("Frequency cannot be zero")`
+    metadata:
+      domain: healthcare
+      category: classic-bug
+
+  - id: healthcare-case-sensitive-drug-check
+    patterns:
+      - pattern: ($A, $B) in $LIST
+      - pattern-not: ($A.lower(), $B.lower()) in $LIST
+    languages: [python]
+    paths:
+      include:
+        - src/python/healthcare/*.py
+    severity: WARNING
+    message: >
+      BUG CLASSIQUE : Vérification d'interaction médicamenteuse sensible à la casse.
+      'WARFARIN' ne sera pas détecté si la liste contient 'warfarin'.
+      Correction : normaliser en minuscules avant la comparaison.
+    metadata:
+      domain: healthcare
+      category: classic-bug
+
+  # ===============================================
+  # RÈGLES GÉNÉRALES
+  # ===============================================
+
+  - id: general-simple-vs-compound-interest
+    patterns:
+      - pattern: return $P * $R * $Y
+    languages: [python]
+    paths:
+      include:
+        - src/python/banking/*.py
+    severity: WARNING
+    message: >
+      BUG CLASSIQUE : Formule d'intérêts simples (P * r * t) au lieu de composés.
+      Pour les intérêts composés utiliser : `principal * (1 + rate) ** years - principal`
+    metadata:
+      domain: banking
+      category: classic-bug
+
+  - id: general-date-mutation-js
+    patterns:
+      - pattern: |
+          const $VAR = $DATE;
+          $VAR.setHours(...);
+          return $VAR;
+    languages: [javascript]
+    severity: WARNING
+    message: >
+      BUG CLASSIQUE : Mutation de l'objet Date original.
+      `const nextDose = lastDoseTime` ne crée pas une copie, juste une référence.
+      Correction : `const nextDose = new Date(lastDoseTime.getTime())`
+    metadata:
+      category: classic-bug
