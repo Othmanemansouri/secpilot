@@ -1,4 +1,5 @@
 name: SecPilot JuiceShop Integration
+run: semgrep --config=auto /juice-shop --json > juice-shop-report.json || true
 
 on:
   push:
