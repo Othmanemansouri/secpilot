@@ -7,6 +7,8 @@ on:
 jobs:
   juice-shop:
     runs-on: ubuntu-latest
+    
+    # Hna k-n-hellu l-app dyal Juice Shop f l-background bash t-kun khdama
     services:
       juice-shop:
         image: bkimminich/juice-shop
@@ -26,14 +28,19 @@ jobs:
         run: pip install semgrep
 
       - name: Download Juice Shop Source
-        # Hna ghadi n-jibo l-code l-hqiqi bash n-scanniwh
+        # Had l-khtwa daroria bash Semgrep i-lqa l-code li i-scanni
         run: git clone --depth 1 https://github.com/juice-shop/juice-shop.git ./source-code
 
       - name: Scan Code
-        # Daba ghadi n-scanniw folder 'source-code'
+        # Hna k-n-jbdou dok 41+ thaghra
         run: semgrep --config=auto ./source-code --json > juice-shop-report.json || true
 
-      - name: Check Report
+      - name: Check Report Local
+        run: ls -lh juice-shop-report.json
+
+      - name: Send report to SecPilot API
+        # Hadi hiya l-khtwa li k-t-connecti GitHub m3a l-PC dyalk
         run: |
-          ls -lh juice-shop-report.json
-          echo "Scan finished. Check results above."
+          curl -X POST -H "Content-Type: application/json" \
+               -d @juice-shop-report.json \
+               http://localhost:3000/#/search
