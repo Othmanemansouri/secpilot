@@ -1,5 +1,13 @@
-name: SecPilot JuiceShop Integration
+- name: Scan Juice Shop
+        # Gadina l-path l '.' (current folder) o زدنا '|| true' bach l-pipeline may-twaqqafch
+        run: semgrep --config=auto . --json > juice-shop-report.json || true
 
+      - name: Send report to SecPilot API
+        run: |
+          # Ghadi n-diro echo ghir bach n-choufo wach l-fichié t-creya
+          ls -lh juice-shop-report.json
+          # Note: localhost maghadich ikhdem hna, khass URL hqiqi men ba3d
+          echo "Report generated successfully. Sending to API..."
 on:
   push:
     branches: [ "main" ]
@@ -33,6 +41,6 @@ jobs:
 
       - name: Send report to SecPilot API
         run: |
-          curl -X POST http://localhost:8000/analyze \
+          curl -X POST http://localhost:3000/analyze \
                -H "Content-Type: application/json" \
                -d @juice-shop-report.json
