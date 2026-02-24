@@ -1,5 +1,4 @@
 name: SecPilot JuiceShop Integration
-run: semgrep --config=auto /juice-shop --json > juice-shop-report.json || true
 
 on:
   push:
@@ -26,10 +25,15 @@ jobs:
       - name: Install Semgrep
         run: pip install semgrep
 
+      - name: Download Juice Shop Source
+        # Hna ghadi n-jibo l-code l-hqiqi bash n-scanniwh
+        run: git clone --depth 1 https://github.com/juice-shop/juice-shop.git ./source-code
+
       - name: Scan Code
-        run: semgrep --config=auto . --json > juice-shop-report.json || true
+        # Daba ghadi n-scanniw folder 'source-code'
+        run: semgrep --config=auto ./source-code --json > juice-shop-report.json || true
 
       - name: Check Report
         run: |
           ls -lh juice-shop-report.json
-          echo "Scan finished successfully."
+          echo "Scan finished. Check results above."
