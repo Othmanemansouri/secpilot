@@ -2,12 +2,13 @@ name: SecPilot JuiceShop Integration
 
 on:
   push:
+    branches: [ "main", "feature-juice-shop-scan" ]
+  pull_request:
     branches: [ "main" ]
 
 jobs:
   juice-shop:
     runs-on: ubuntu-latest
-    
 
     services:
       juice-shop:
@@ -28,19 +29,16 @@ jobs:
         run: pip install semgrep
 
       - name: Download Juice Shop Source
-        # Had l-khtwa daroria bash Semgrep i-lqa l-code li i-scanni
         run: git clone --depth 1 https://github.com/juice-shop/juice-shop.git ./source-code
 
       - name: Scan Code
-     
         run: semgrep --config=auto ./source-code --json > juice-shop-report.json || true
 
       - name: Check Report Local
         run: ls -lh juice-shop-report.json
 
       - name: Send report to SecPilot API
-
         run: |
           curl -X POST -H "Content-Type: application/json" \
                -d @juice-shop-report.json \
-               https://YOUR_NGROK_URL/analyze
+               https://secpilot-api.ngrok.app/analyze
