@@ -40,9 +40,8 @@ jobs:
                -d @juice-shop-report.json \
                https://YOUR_NGROK_URL/analyze || echo "API not reachable"
 
-      # --- Hadi hiya l-khtwa li bghiti ---
       - name: Upload Report as Artifact
         uses: actions/upload-artifact@v4
         with:
           name: semgrep-report
-          path: juice-shop-report.json
+          path: juice-shop-report.json 
